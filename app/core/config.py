@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_BUCKET: str = "cv-records"
+    GEMINI_API_KEY: str
     
     model_config = SettingsConfigDict(
         env_file=".env",

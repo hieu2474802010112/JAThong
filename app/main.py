@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
+from app.core.limiter import RateLimitMiddleware
 
 app = FastAPI(
     title="AI-powered CV Management & Grading System API",
@@ -16,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add Rate Limiting Middleware
+app.add_middleware(RateLimitMiddleware)
 
 # Include API v1 routes
 app.include_router(api_router, prefix="/api/v1")
