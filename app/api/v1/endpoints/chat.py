@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from app.services.ai.chatbot import chat_with_candidate, chat_with_hr
+from app.services.ai.evaluator import clear_criteria_cache
 from app.core.database import get_supabase_admin
 
 router = APIRouter()
@@ -62,3 +63,8 @@ async def candidate_chat(request: CandidateChatRequest):
 async def hr_chat(request: HRChatRequest, admin: dict = Depends(verify_admin_token)):
     reply = await chat_with_hr(query=request.query)
     return {"reply": reply}
+
+@router.post("/clear-criteria-cache")
+async def clear_criteria_cache_endpoint(admin: dict = Depends(verify_admin_token)):
+    clear_criteria_cache()
+    return {"status": "Cache cleared successfully"}

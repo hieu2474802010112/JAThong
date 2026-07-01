@@ -1,71 +1,46 @@
 import os
-import json
 import time
 import asyncio
+import redis
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import settings
 
 RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX_REQUESTS = 60  # max requests per window
-LIMITER_FILE = "/tmp/limiter_data.json"
 
-# Lock to ensure thread-safe/asyncio-safe file operations in a single process
-file_lock = asyncio.Lock()
+# Initialize connection pool and redis client
+redis_pool = redis.ConnectionPool.from_url(settings.REDIS_URL, decode_responses=True)
+redis_client = redis.Redis(connection_pool=redis_pool)
 
-def _read_limiter_data() -> dict:
-    if not os.path.exists(LIMITER_FILE):
-        return {}
+def _check_rate_limit_redis(client_ip: str) -> bool:
+    key = f"rate_limit:{client_ip}"
     try:
-        with open(LIMITER_FILE, "r") as f:
-            return json.load(f)
+        pipe = redis_client.pipeline()
+        pipe.incr(key)
+        pipe.ttl(key)
+        results = pipe.execute()
+        
+        current_requests = results[0]
+        ttl = results[1]
+        
+        if ttl == -1 or current_requests == 1:
+            redis_client.expire(key, RATE_LIMIT_WINDOW)
+            
+        if current_requests > RATE_LIMIT_MAX_REQUESTS:
+            return False
+        return True
     except Exception:
-        return {}
-
-def _write_limiter_data(data: dict):
-    # Ensure parent directories exist
-    os.makedirs(os.path.dirname(LIMITER_FILE), exist_ok=True)
-    with open(LIMITER_FILE, "w") as f:
-        json.dump(data, f)
+        # Fail-open strategy: allow requests if redis is down
+        return True
 
 async def check_rate_limit(client_ip: str) -> bool:
     """
-    Checks if a client has exceeded the rate limit.
+    Checks if a client has exceeded the rate limit using Redis.
     Returns True if allowed, False if rate limited.
     """
-    async with file_lock:
-        # Run synchronous file I/O in a separate thread pool to prevent blocking the event loop
-        data = await asyncio.to_thread(_read_limiter_data)
-        
-        current_time = time.time()
-        client_data = data.get(client_ip)
-        
-        if not client_data:
-            data[client_ip] = {
-                "count": 1,
-                "reset_time": current_time + RATE_LIMIT_WINDOW
-            }
-            allowed = True
-        else:
-            reset_time = client_data.get("reset_time", 0)
-            count = client_data.get("count", 0)
-            
-            if current_time > reset_time:
-                # Window expired, reset counter and window
-                data[client_ip] = {
-                    "count": 1,
-                    "reset_time": current_time + RATE_LIMIT_WINDOW
-                }
-                allowed = True
-            else:
-                if count >= RATE_LIMIT_MAX_REQUESTS:
-                    allowed = False
-                else:
-                    client_data["count"] = count + 1
-                    allowed = True
-                    
-        await asyncio.to_thread(_write_limiter_data, data)
-        return allowed
+    return await asyncio.to_thread(_check_rate_limit_redis, client_ip)
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -84,3 +59,4 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
             
         return await call_next(request)
+

@@ -7,6 +7,11 @@ from app.core.config import settings
 from app.services.cv_parser import CVParser
 from app.models.cv import CVUploadResponse
 from app.services.ai.evaluator import evaluate_cv
+from app.worker import evaluate_cv_task
+from celery.result import AsyncResult
+from pydantic import BaseModel
+from typing import Any
+from app.core.logging_config import request_id_var
 
 router = APIRouter()
 
@@ -42,14 +47,17 @@ async def upload_cv(
             detail=f"Failed to read uploaded file: {str(e)}"
         )
     
-    # Validate Magic Bytes immediately
+    # Validate Magic Bytes and File Content (Macro / JS detection)
     try:
+        CVParser.validate_file_content(file_bytes, filename)
         mime = magic.Magic(mime=True)
         detected_mime = mime.from_buffer(file_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to verify file magic bytes: {str(e)}"
+            detail=f"Failed to verify file bytes security: {str(e)}"
         )
 
     if ext == "pdf":
@@ -70,18 +78,18 @@ async def upload_cv(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 detail=f"Invalid file content. Expected DOCX, but detected: {detected_mime}"
             )
-        
-    # 2. Parse text from CV first (fail early if corrupted)
+
+    # 3. Parse text from CV synchronously
     parsed_text = ""
     if ext == "pdf":
         parsed_text = CVParser.parse_pdf(file_bytes)
     elif ext == "docx":
         parsed_text = CVParser.parse_docx(file_bytes)
-
-    # 3. Connect to Supabase
+        
+    # 4. Connect to Supabase
     supabase = get_supabase_admin()
     
-    # 4. Handle Candidate registration if candidate_id is not provided
+    # 5. Handle Candidate registration if candidate_id is not provided
     actual_candidate_id = None
     if candidate_id:
         # Verify candidate exists
@@ -122,7 +130,7 @@ async def upload_cv(
                 detail=f"Failed to auto-create candidate record: {str(e)}"
             )
 
-    # 5. Upload file to Supabase Storage
+    # 6. Upload file to Supabase Storage
     unique_filename = f"{uuid.uuid4()}.{ext}"
     storage_path = f"cvs/{unique_filename}"
     
@@ -141,11 +149,11 @@ async def upload_cv(
             except Exception:
                 pass
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
+            status_code=status.HTTP_522_CONNECTION_TIMEOUT if "connection" in str(e).lower() else status.HTTP_502_BAD_GATEWAY,
             detail=f"Supabase storage upload failed: {str(e)}"
         )
 
-    # 6. Insert CV Record into Database
+    # 7. Insert CV Record into Database with status 'parsed'
     try:
         cv_record_data = {
             "candidate_id": actual_candidate_id,
@@ -185,51 +193,92 @@ async def upload_cv(
         created_at=record["created_at"]
     )
 
-@router.post("/{cv_id}/evaluate")
+class CVEvaluationTriggerResponse(BaseModel):
+    task_id: str
+    status: str
+
+class CVTaskStatusResponse(BaseModel):
+    status: str
+    result: Optional[Any] = None
+    error: Optional[str] = None
+
+@router.post("/{cv_id}/evaluate", response_model=CVEvaluationTriggerResponse)
 async def evaluate_existing_cv(cv_id: uuid.UUID):
     supabase = get_supabase_admin()
     
-    # 1. Fetch CV record from database
+    # 1. Fetch CV record from database to verify existence and check size/extension (Fail-fast)
     try:
-        res = supabase.table("cv_records").select("parsed_text").eq("id", str(cv_id)).execute()
+        res = supabase.table("cv_records").select("id", "file_name", "file_size").eq("id", str(cv_id)).execute()
         if not res.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"CV record with ID {cv_id} not found."
             )
-        parsed_text = res.data[0].get("parsed_text")
-        if not parsed_text:
+        record = res.data[0]
+        file_name = record.get("file_name") or ""
+        file_size = record.get("file_size") or 0
+        
+        # Check size (5MB limit)
+        max_bytes = 5 * 1024 * 1024
+        if file_size > max_bytes:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CV parsed text is empty or not available for evaluation."
+                detail="Fail-fast check failed: CV file size exceeds the 5MB limit."
             )
+            
+        # Check type
+        ext = file_name.split(".")[-1].lower() if "." in file_name else ""
+        if ext not in ["pdf", "docx"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Fail-fast check failed: Unsupported file format. Only PDF and DOCX files are allowed."
+            )
+            
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database query failed: {str(e)}"
+            detail=f"Database query or validation failed: {str(e)}"
         )
         
-    # 2. Call AI evaluator
-    evaluation_result = await evaluate_cv(parsed_text)
-    
-    # 3. Update database record
+    # 2. Trigger asynchronous Celery task with headers containing request_id
     try:
-        update_data = {
-            "status": "evaluated",
-            "evaluation_result": evaluation_result.model_dump()
-        }
-        update_res = supabase.table("cv_records").update(update_data).eq("id", str(cv_id)).execute()
-        if not update_res.data:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update CV record with evaluation results."
-            )
+        request_id = request_id_var.get()
+        task = evaluate_cv_task.apply_async(
+            args=[str(cv_id)],
+            headers={"request_id": request_id}
+        )
+        return CVEvaluationTriggerResponse(
+            task_id=task.id,
+            status="pending"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database update failed: {str(e)}"
+            detail=f"Failed to queue CV evaluation task: {str(e)}"
         )
-        
-    return update_res.data[0]
+
+@router.get("/task-status/{task_id}", response_model=CVTaskStatusResponse)
+def get_cv_task_status(task_id: str):
+    res = AsyncResult(task_id)
+    state = res.state.lower()
+    
+    if state == "success":
+        return CVTaskStatusResponse(
+            status="success",
+            result=res.result
+        )
+    elif state == "failure":
+        return CVTaskStatusResponse(
+            status="failed",
+            error=str(res.result)
+        )
+    elif state in ["pending", "started", "received", "retry"]:
+        return CVTaskStatusResponse(
+            status="pending"
+        )
+    else:
+        return CVTaskStatusResponse(
+            status="unknown"
+        )

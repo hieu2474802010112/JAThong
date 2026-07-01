@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_KEY: str
     SUPABASE_BUCKET: str = "cv-records"
     GEMINI_API_KEY: str
+    REDIS_URL: str = "redis://redis:6379/0"
     
     model_config = SettingsConfigDict(
         env_file=".env",
