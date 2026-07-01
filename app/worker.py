@@ -25,6 +25,8 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    result_expires=1800,  # 30-minute expiration to prevent Redis memory bloat
+    worker_prefetch_multiplier=1,  # Forces fair round-robin scheduling among workers
 )
 
 # Celery signals to propagate request_id

@@ -1,3 +1,4 @@
+import os
 import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.config import settings
@@ -5,8 +6,13 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 def get_gemini_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
-    # Expanded list of models, incorporating active newer models (Gemini 3.5, 2.5, 2.0) and requested legacy models
-    models = [
+    # Allow overriding preferred model via GEMINI_MODEL env var without editing code (solves Point 5)
+    preferred_model = os.environ.get("GEMINI_MODEL")
+    models = []
+    if preferred_model:
+        models.append(preferred_model)
+        
+    models.extend([
         "gemini-3.5-flash",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
@@ -15,7 +21,8 @@ def get_gemini_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
         "gemini-1.5-flash",
         "gemini-1.0-pro",
         "gemini-pro"
-    ]
+    ])
+    
     for model_name in models:
         try:
             llm = ChatGoogleGenerativeAI(

@@ -16,7 +16,7 @@ from app.core.logging_config import request_id_var
 router = APIRouter()
 
 @router.post("/upload", response_model=CVUploadResponse, status_code=status.HTTP_201_CREATED)
-async def upload_cv(
+def upload_cv(
     file: UploadFile = File(...),
     candidate_id: Optional[str] = Form(None)
 ):
@@ -29,11 +29,11 @@ async def upload_cv(
             detail="Unsupported file format. Only PDF and DOCX files are allowed."
         )
     
-    # Read file bytes (limiting to 5MB)
+    # Read file bytes synchronously inside FastAPI threadpool
     try:
         # Prevent reading more than 5MB to avoid memory exhaustion
         max_bytes = 5 * 1024 * 1024
-        file_bytes = await file.read(max_bytes + 1)
+        file_bytes = file.file.read(max_bytes + 1)
         if len(file_bytes) > max_bytes:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
