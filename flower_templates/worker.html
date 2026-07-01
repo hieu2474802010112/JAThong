@@ -19,42 +19,42 @@
       <div class="btn-group float-end" role="group" aria-label="Button Group">
         <button id="worker-group" type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"
           aria-expanded="false">
-          Refresh
+          Làm mới
         </button>
         <ul class="dropdown-menu" aria-labelledby="btnGroupDrop">
-          <li><a id="worker-shutdown" class="dropdown-item" data-bs-dismiss="dropdown">Shut Down</a></li>
-          <li><a id="worker-pool-restart" class="dropdown-item" data-bs-dismiss="dropdown">Restart Pool</a></li>
-          <li><a id="worker-refresh" class="dropdown-item" data-bs-dismiss="dropdown">Refresh</a></li>
-          <li><a id="worker-refresh-all" class="dropdown-item" data-bs-dismiss="dropdown">Refresh All</a></li>
+          <li><a id="worker-shutdown" class="dropdown-item" data-bs-dismiss="dropdown">Tắt tiến trình (Shut Down)</a></li>
+          <li><a id="worker-pool-restart" class="dropdown-item" data-bs-dismiss="dropdown">Khởi động lại Pool</a></li>
+          <li><a id="worker-refresh" class="dropdown-item" data-bs-dismiss="dropdown">Làm mới</a></li>
+          <li><a id="worker-refresh-all" class="dropdown-item" data-bs-dismiss="dropdown">Làm mới tất cả</a></li>
         </ul>
       </div>
 
       <div class="tabbable">
         <ul class="nav nav-tabs" role="tablist">
           <li class="nav-item" role="presentation"><a class="nav-link active" href="#tab-pool" data-bs-toggle="tab"
-              data-bs-target="#tab-pool" type="button" role="tab" aria-controls="tab-pool" aria-selected="true">Pool</a>
+              data-bs-target="#tab-pool" type="button" role="tab" aria-controls="tab-pool" aria-selected="true">Nhóm xử lý (Pool)</a>
           </li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-broker" data-bs-toggle="tab"
               data-bs-target="#tab-broker" type="button" role="tab" aria-controls="tab-broker"
-              aria-selected="false">Broker</a></li>
+              aria-selected="false">Kênh truyền (Broker)</a></li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-queues" data-bs-toggle="tab"
               data-bs-target="#tab-queues" type="button" role="tab" aria-controls="tab-queues"
-              aria-selected="false">Queues</a></li>
+              aria-selected="false">Hàng đợi (Queues)</a></li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-tasks" data-bs-toggle="tab"
               data-bs-target="#tab-tasks" type="button" role="tab" aria-controls="tab-tasks"
-              aria-selected="false">Tasks</a></li>
+              aria-selected="false">Tác vụ (Tasks)</a></li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-limits" data-bs-toggle="tab"
               data-bs-target="#tab-limits" type="button" role="tab" aria-controls="tab-limits"
-              aria-selected="false">Limits</a></li>
+              aria-selected="false">Giới hạn (Limits)</a></li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-config" data-bs-toggle="tab"
               data-bs-target="#tab-config" type="button" role="tab" aria-controls="tab-config"
-              aria-selected="false">Config</a></li>
+              aria-selected="false">Cấu hình (Config)</a></li>
           <li class="nav-item" role="presentation"><a class="nav-link" href="#tab-system" data-bs-toggle="tab"
               data-bs-target="#tab-system" type="button" role="tab" aria-controls="tab-system"
-              aria-selected="false">System</a></li>
+              aria-selected="false">Hệ thống (System)</a></li>
           {% if other %}
           <li class="nav-item"><a class="nav-link" href="#tab-other" data-bs-toggle="tab" data-bs-target="#tab-other"
-              type="button" role="tab" aria-controls="tab-other" aria-selected="false">Other</a></li>
+              type="button" role="tab" aria-controls="tab-other" aria-selected="false">Khác (Other)</a></li>
           {% end %}
         </ul>
 
@@ -64,7 +64,7 @@
               <div class="row">
                 <div class="col-lg-8">
                   <table class="table table-bordered table-striped caption-top">
-                    <caption>Worker pool options</caption>
+                    <caption>Cấu hình Nhóm xử lý (Worker pool options)</caption>
                     <tbody>
                       {% for name,value in worker['stats'].get('pool', {}).items() %}
                       <tr>
@@ -73,11 +73,11 @@
                       </tr>
                       {% end %}
                       <tr>
-                        <td>Worker PID</td>
+                        <td>Mã PID của Worker</td>
                         <td>{{ worker['stats'].get('pid', 'N/A')}}</td>
                       </tr>
                       <tr>
-                        <td>Prefetch Count</td>
+                        <td>Số lượng Prefetch (Prefetch Count)</td>
                         <td>{{ worker['stats'].get('prefetch_count', 'N/A')}}</td>
                       </tr>
                     </tbody>
@@ -86,20 +86,20 @@
 
                 <div class="col-lg-4 container">
                   <form class="mx-auto">
-                    <legend class="form-label mt-md-5">Pool size control</legend>
+                    <legend class="form-label mt-md-5">Điều khiển kích thước Pool</legend>
                     <div class="mb-3">
-                      <label for="pool-size" class="col-sm-2 col-form-label text-nowrap">Pool size</label>
+                      <label for="pool-size" class="col-sm-2 col-form-label text-nowrap">Kích thước Pool</label>
                       <input type="number" id="pool-size" min="1" max="100" value="1">
-                      <button id="worker-pool-grow" class="btn btn-primary btn-sm" type="button">Grow</button>
-                      <button id="worker-pool-shrink" class="btn btn-primary btn-sm" type="button">Shrink</button>
+                      <button id="worker-pool-grow" class="btn btn-primary btn-sm" type="button">Tăng (Grow)</button>
+                      <button id="worker-pool-shrink" class="btn btn-primary btn-sm" type="button">Giảm (Shrink)</button>
                     </div>
                     <div class="mb-3 input-group">
-                      <label for="min-autoscale" class="col-sm-2 form-label text-nowrap">Auto scale</label>
-                      <input class="form-control-sm" id="min-autoscale" type="number" placeholder="Min" min="1"
+                      <label for="min-autoscale" class="col-sm-2 form-label text-nowrap">Tự động co giãn</label>
+                      <input class="form-control-sm" id="min-autoscale" type="number" placeholder="Tối thiểu" min="1"
                         max="100">
-                      <input class="form-control-sm mx-1" id="max-autoscale" type="number" placeholder="Max" min="1"
+                      <input class="form-control-sm mx-1" id="max-autoscale" type="number" placeholder="Tối đa" min="1"
                         max="100">
-                      <button id="worker-pool-autoscale" class="btn btn-primary btn-sm" type="button">Apply</button>
+                      <button id="worker-pool-autoscale" class="btn btn-primary btn-sm" type="button">Áp dụng (Apply)</button>
                     </div>
                   </form>
                 </div>
