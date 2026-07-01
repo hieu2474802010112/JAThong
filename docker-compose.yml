@@ -58,9 +58,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: cv-evaluator-flower
-    command: celery -A app.worker flower --port=5555
+    command: celery -A app.worker flower --port=5555 --templates=/app/flower_templates
     ports:
       - "5555:5555"
+    volumes:
+      - ./flower_templates:/app/flower_templates
     env_file:
       - .env
     environment:
