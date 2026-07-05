@@ -44,6 +44,10 @@ async def check_rate_limit(client_ip: str) -> bool:
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Only apply rate limiting to backend API endpoints
+        if not (request.url.path.startswith("/api/v1/") or request.url.path.startswith("/api/")):
+            return await call_next(request)
+
         # Retrieve client IP or default to unknown
         client_ip = request.client.host if request.client else "unknown"
         

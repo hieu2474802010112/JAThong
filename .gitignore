@@ -22,3 +22,8 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+system_error.log
+

@@ -1,7 +1,9 @@
+import os
 import logging
 import traceback
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.core.limiter import RateLimitMiddleware
@@ -48,6 +50,18 @@ app.add_middleware(RateLimitMiddleware)
 # Include API v1 routes
 app.include_router(api_router, prefix="/api/v1")
 
+# Jinja2 template engine — handles its own template caching internally
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/evaluate", response_class=HTMLResponse, tags=["Frontend"])
+def get_evaluate_page(request: Request):
+    return templates.TemplateResponse("evaluate.html", {"request": request})
+
+@app.get("/portfolio-builder", response_class=HTMLResponse, tags=["Frontend"])
+def get_portfolio_builder_page(request: Request):
+    return templates.TemplateResponse("portfolio_builder.html", {"request": request})
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     request_id = request_id_var.get()
@@ -76,3 +90,40 @@ def health_check():
         "service": "AI CV Management API",
         "version": "1.0.0"
     }
+
+
+# ─── APScheduler Background Cleanup Job ───────────────────────────────────────
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.core.database import get_supabase_admin
+
+def cleanup_stale_sessions():
+    """APScheduler task: monthly clean up of stale chatbot sessions (>30 days old)"""
+    logger.info("Running monthly cleanup task for stale chatbot sessions...")
+    try:
+        supabase = get_supabase_admin()
+        supabase.rpc("cleanup_chatbot_sessions").execute()
+        logger.info("Successfully cleaned up stale chatbot sessions.")
+    except Exception as e:
+        logger.error(f"Error during monthly stale chatbot sessions cleanup: {e}")
+
+# Scheduler setup
+scheduler = BackgroundScheduler()
+
+@app.on_event("startup")
+def start_scheduler():
+    # Schedule cleanup task to run at 00:00 on the first day of each month
+    scheduler.add_job(
+        cleanup_stale_sessions, 
+        'cron', 
+        day=1, 
+        hour=0, 
+        minute=0, 
+        id="monthly_session_cleanup"
+    )
+    scheduler.start()
+    logger.info("APScheduler initialized and started successfully.")
+
+@app.on_event("shutdown")
+def stop_scheduler():
+    scheduler.shutdown()
+    logger.info("APScheduler shut down successfully.")

@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.services.cv_parser import CVParser
 from app.models.cv import CVUploadResponse
 from app.services.ai.evaluator import evaluate_cv
-from app.worker import evaluate_cv_task
+from app.worker import evaluate_cv_task, celery_app
 from celery.result import AsyncResult
 from pydantic import BaseModel
 from typing import Any
@@ -193,6 +193,9 @@ def upload_cv(
         created_at=record["created_at"]
     )
 
+# In-memory store for Celery eager mode execution results
+eager_results = {}
+
 class CVEvaluationTriggerResponse(BaseModel):
     task_id: str
     status: str
@@ -249,6 +252,15 @@ async def evaluate_existing_cv(cv_id: uuid.UUID):
             args=[str(cv_id)],
             headers={"request_id": request_id}
         )
+        
+        # If running in Celery eager mode (Redis is down/local demo),
+        # the task runs synchronously, so we store the result in eager_results
+        if getattr(celery_app.conf, "task_always_eager", False):
+            if task.state == "SUCCESS":
+                eager_results[task.id] = ("success", task.result, None)
+            else:
+                eager_results[task.id] = ("failed", None, str(task.result))
+                
         return CVEvaluationTriggerResponse(
             task_id=task.id,
             status="pending"
@@ -261,24 +273,41 @@ async def evaluate_existing_cv(cv_id: uuid.UUID):
 
 @router.get("/task-status/{task_id}", response_model=CVTaskStatusResponse)
 def get_cv_task_status(task_id: str):
-    res = AsyncResult(task_id)
-    state = res.state.lower()
-    
-    if state == "success":
+    # Check eager results first
+    if task_id in eager_results:
+        status_val, result, error = eager_results[task_id]
         return CVTaskStatusResponse(
-            status="success",
-            result=res.result
+            status=status_val,
+            result=result,
+            error=error
         )
-    elif state == "failure":
+        
+    try:
+        res = AsyncResult(task_id, app=celery_app)
+        state = res.state.lower()
+        
+        if state == "success":
+            return CVTaskStatusResponse(
+                status="success",
+                result=res.result
+            )
+        elif state == "failure":
+            return CVTaskStatusResponse(
+                status="failed",
+                error=str(res.result)
+            )
+        elif state in ["pending", "started", "received", "retry"]:
+            return CVTaskStatusResponse(
+                status="pending"
+            )
+        else:
+            return CVTaskStatusResponse(
+                status="unknown"
+            )
+    except Exception as e:
+        # Fallback if Redis connection fails but we might have task results
+        # in database or if it was an eager task that wasn't captured.
         return CVTaskStatusResponse(
-            status="failed",
-            error=str(res.result)
-        )
-    elif state in ["pending", "started", "received", "retry"]:
-        return CVTaskStatusResponse(
-            status="pending"
-        )
-    else:
-        return CVTaskStatusResponse(
-            status="unknown"
+            status="unknown",
+            error=f"Task backend connection failed: {str(e)}"
         )

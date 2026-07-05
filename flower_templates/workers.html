@@ -23,9 +23,15 @@
       <tbody>
         {% for name, info in workers.items() %}
         <tr id="{{ url_escape(name) }}">
-          <td>{{ name }}</td>
-          <td>{{ info.get('status', None) }}</td>
-          <td>{{ info.get('active', 0) or 0 }}</td>
+          <td><a href="{{ reverse_url('worker', name) }}">{{ name }}</a></td>
+          <td class="text-center">
+            {% if info.get('status', None) == True or info.get('status', None) == 'Online' or info.get('status', None) == 'online' %}
+              <span class="badge bg-success">Trực tuyến (Online)</span>
+            {% else %}
+              <span class="badge bg-danger">Ngoại tuyến (Offline)</span>
+            {% end %}
+          </td>
+          <td class="text-center">{{ info.get('active', 0) or 0 }}</td>
           <td>{{ info.get('task-received', 0) }}</td>
           <td>{{ info.get('task-failed', 0) }}</td>
           <td>{{ info.get('task-succeeded', 0) }}</td>

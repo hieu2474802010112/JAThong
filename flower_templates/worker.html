@@ -87,19 +87,17 @@
                 <div class="col-lg-4 container">
                   <form class="mx-auto">
                     <legend class="form-label mt-md-5">Điều khiển kích thước Pool</legend>
-                    <div class="mb-3">
-                      <label for="pool-size" class="col-sm-2 col-form-label text-nowrap">Kích thước Pool</label>
-                      <input type="number" id="pool-size" min="1" max="100" value="1">
+                    <div class="mb-3 d-flex align-items-center gap-2">
+                      <label for="pool-size" class="form-label text-nowrap mb-0 me-2" style="width: 120px;">Kích thước Pool</label>
+                      <input type="number" id="pool-size" class="form-control d-inline-block" style="width: 80px;" min="1" max="100" value="1">
                       <button id="worker-pool-grow" class="btn btn-primary btn-sm" type="button">Tăng (Grow)</button>
                       <button id="worker-pool-shrink" class="btn btn-primary btn-sm" type="button">Giảm (Shrink)</button>
                     </div>
-                    <div class="mb-3 input-group">
-                      <label for="min-autoscale" class="col-sm-2 form-label text-nowrap">Tự động co giãn</label>
-                      <input class="form-control-sm" id="min-autoscale" type="number" placeholder="Tối thiểu" min="1"
-                        max="100">
-                      <input class="form-control-sm mx-1" id="max-autoscale" type="number" placeholder="Tối đa" min="1"
-                        max="100">
-                      <button id="worker-pool-autoscale" class="btn btn-primary btn-sm" type="button">Áp dụng (Apply)</button>
+                    <div class="mb-3 d-flex align-items-center gap-2">
+                      <label for="min-autoscale" class="form-label text-nowrap mb-0 me-2" style="width: 120px;">Tự động co giãn</label>
+                      <input class="form-control form-control-sm d-inline-block" style="width: 80px;" id="min-autoscale" type="number" placeholder="Tối thiểu" min="1" max="100">
+                      <input class="form-control form-control-sm d-inline-block" style="width: 80px;" id="max-autoscale" type="number" placeholder="Tối đa" min="1" max="100">
+                      <button id="worker-pool-autoscale" class="btn btn-primary btn-sm" type="button">Áp dụng</button>
                     </div>
                   </form>
                 </div>
@@ -388,3 +386,59 @@
     </div>
   </div>
   {% end %}
+
+{% block extra_scripts %}
+<script>
+  $(document).ready(function() {
+    // Intercept shutdown button click
+    const shutdownBtn = $('#worker-shutdown');
+    if (shutdownBtn.length) {
+      shutdownBtn.off('click').on('click', function(e) {
+        if (confirm('Bạn có chắc chắn muốn TẮT tiến trình (Shut Down) worker này không? Hành động này sẽ làm dừng mọi tác vụ ngầm đang xử lý.')) {
+          const url_prefix = $('#url_prefix').val();
+          const workername = $('#workername').text().trim();
+          $.ajax({
+            type: 'POST',
+            url: url_prefix + '/api/worker/shutdown/' + encodeURIComponent(workername),
+            success: function(data) {
+              alert('Yêu cầu tắt tiến trình đã được gửi.');
+              location.reload();
+            },
+            error: function(err) {
+              alert('Lỗi: ' + err.responseText);
+            }
+          });
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
+
+    // Intercept pool restart button click
+    const restartBtn = $('#worker-pool-restart');
+    if (restartBtn.length) {
+      restartBtn.off('click').on('click', function(e) {
+        if (confirm('Bạn có chắc chắn muốn KHỞI ĐỘNG LẠI Pool của worker này không?')) {
+          const url_prefix = $('#url_prefix').val();
+          const workername = $('#workername').text().trim();
+          $.ajax({
+            type: 'POST',
+            url: url_prefix + '/api/worker/pool/restart/' + encodeURIComponent(workername),
+            success: function(data) {
+              alert('Yêu cầu khởi động lại Pool đã được gửi.');
+              location.reload();
+            },
+            error: function(err) {
+              alert('Lỗi: ' + err.responseText);
+            }
+          });
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
+  });
+</script>
+{% end %}

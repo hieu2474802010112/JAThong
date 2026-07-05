@@ -10,7 +10,8 @@
 <input type="hidden" value="{{ columns }}" id='columns'>
 
 <div class="container-fluid mt-3">
-  <table id="tasks-table" class="table table-bordered table-striped table-hover w-100">
+  <figure class="table-responsive">
+    <table id="tasks-table" class="table table-bordered table-striped table-hover w-100">
     <thead>
     <tr>
       <th>Tên Tác vụ</th>
@@ -39,8 +40,20 @@
         {% end %}
     <tr>
       <td>{{ task.name }}</td>
-      <td>{{ task.uuid }}</td>
-      <td>{{ task.state }}</td>
+      <td><a href="{{ reverse_url('task', task.uuid) }}">{{ task.uuid }}</a></td>
+      <td class="text-center">
+        {% if task.state == "SUCCESS" %}
+          <span class="badge bg-success">Thành công</span>
+        {% elif task.state == "FAILURE" %}
+          <span class="badge bg-danger">Thất bại</span>
+        {% elif task.state == "RETRY" %}
+          <span class="badge bg-warning">Thử lại</span>
+        {% elif task.state == "STARTED" %}
+          <span class="badge bg-info">Đang chạy</span>
+        {% else %}
+          <span class="badge bg-info">{{ task.state }}</span>
+        {% end %}
+      </td>
       <td>{{ task.args }}</td>
       <td>{{ task.kwargs }}</td>
       <td>
@@ -69,5 +82,6 @@
       {% end %}
     </tbody>
   </table>
+  </figure>
 </div>
 {% end %}

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.services.ai.chatbot import chat_with_candidate, chat_with_hr
-from app.services.ai.evaluator import clear_criteria_cache
+from app.services.ai.chatbot import chat_with_candidate
+from app.services.ai.scorer import clear_criteria_cache
 from app.core.database import get_supabase_admin
 
 router = APIRouter()
@@ -10,61 +10,62 @@ class CandidateChatRequest(BaseModel):
     message: str
     session_id: str
 
-class HRChatRequest(BaseModel):
-    query: str
+class CandidateSessionRequest(BaseModel):
+    cv_record_id: str
 
-async def verify_admin_token(authorization: str = Header(...)) -> dict:
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format. Expected 'Bearer <token>'."
-        )
-    token = authorization.split(" ")[1]
-    
+
+@router.post("/session")
+async def init_chat_session(request: CandidateSessionRequest):
+    """
+    Create or retrieve a chat session for a given cv_record_id.
+    Returns session_id and the full message history so the frontend
+    can display prior conversation turns.
+    """
     supabase = get_supabase_admin()
     try:
-        user_res = supabase.auth.get_user(token)
-        user = user_res.user
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token or user not found."
-            )
-        
-        role_res = supabase.table("users").select("role").eq("id", user.id).execute()
-        if not role_res.data:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User profile record not found."
-            )
-            
-        role = role_res.data[0].get("role")
-        if role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied. Admin role required."
-            )
-            
-        return role_res.data[0]
-    except HTTPException:
-        raise
+        # Try to find an existing session for this cv_record_id
+        res = supabase.table("chat_sessions") \
+            .select("id") \
+            .eq("cv_record_id", request.cv_record_id) \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+
+        if res.data:
+            session_id = res.data[0]["id"]
+        else:
+            # Create a new session linked to the cv_record
+            insert_res = supabase.table("chat_sessions").insert({
+                "cv_record_id": request.cv_record_id
+            }).execute()
+            session_id = insert_res.data[0]["id"]
+
+        # Load message history for this session
+        history_res = supabase.table("chat_messages") \
+            .select("sender", "content", "created_at") \
+            .eq("session_id", session_id) \
+            .order("created_at", desc=False) \
+            .execute()
+
+        return {
+            "session_id": session_id,
+            "history": history_res.data or []
+        }
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {str(e)}"
+            status_code=500,
+            detail=f"Failed to initialize chat session: {str(e)}"
         )
+
 
 @router.post("/candidate")
 async def candidate_chat(request: CandidateChatRequest):
     reply = await chat_with_candidate(message=request.message, session_id=request.session_id)
     return {"reply": reply}
 
-@router.post("/hr")
-async def hr_chat(request: HRChatRequest, admin: dict = Depends(verify_admin_token)):
-    reply = await chat_with_hr(query=request.query)
-    return {"reply": reply}
 
 @router.post("/clear-criteria-cache")
-async def clear_criteria_cache_endpoint(admin: dict = Depends(verify_admin_token)):
+async def clear_criteria_cache_endpoint():
+    """Internal utility: clears rubric cache so updated criteria take effect immediately."""
     clear_criteria_cache()
     return {"status": "Cache cleared successfully"}

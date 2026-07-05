@@ -38,7 +38,8 @@ create table public.cv_records (
     file_name text not null,
     file_size integer not null,
     parsed_text text, -- Extracted text using PyMuPDF
-    status text default 'pending' check (status in ('pending', 'parsing', 'parsed', 'failed')),
+    status text default 'pending' check (status in ('pending', 'parsing', 'parsed', 'evaluated', 'failed')),
+    evaluation_result jsonb,
     created_by uuid references public.users(id) on delete set null,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null

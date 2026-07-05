@@ -87,27 +87,69 @@ class CVParser:
 
     @staticmethod
     def parse_pdf(file_bytes: bytes) -> str:
+        cleaned_text = ""
+        # 1. Try using pdfplumber for accurate layout-aware text extraction
         try:
-            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            import pdfplumber
             text = ""
-            for page in doc:
-                text += page.get_text()
-            doc.close()
+            with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
             
-            cleaned_text = text.strip()
-            if not cleaned_text:
+            # Normalize whitespaces, resolve double spacing, strip lines
+            lines = []
+            for line in text.split("\n"):
+                cleaned_line = " ".join(line.strip().split())
+                if cleaned_line:
+                    lines.append(cleaned_line)
+            temp_text = "\n".join(lines).strip()
+            
+            # Smart check: If pdfplumber squished words together (e.g. > 25 chars without space/special chars),
+            # trigger fallback to PyMuPDF immediately.
+            squished_count = 0
+            for word in temp_text.split():
+                if len(word) > 25:
+                    if not any(c in word for c in ["@", "http", "www", "/", "."]):
+                        squished_count += 1
+            
+            if squished_count < 3:
+                cleaned_text = temp_text
+        except Exception:
+            # Fallback to PyMuPDF if pdfplumber fails
+            cleaned_text = ""
+
+        # 2. PyMuPDF (fitz) fallback path
+        if not cleaned_text:
+            try:
+                doc = fitz.open(stream=file_bytes, filetype="pdf")
+                text = ""
+                for page in doc:
+                    text += page.get_text()
+                doc.close()
+                
+                # Normalize whitespaces
+                lines = []
+                for line in text.split("\n"):
+                    cleaned_line = " ".join(line.strip().split())
+                    if cleaned_line:
+                        lines.append(cleaned_line)
+                cleaned_text = "\n".join(lines).strip()
+            except Exception as e:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="PDF file is empty or contains no readable text."
+                    detail=f"Corrupted or invalid PDF file: {str(e)}"
                 )
-            return cleaned_text
-        except HTTPException:
-            raise
-        except Exception as e:
+
+
+        if not cleaned_text:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Corrupted or invalid PDF file: {str(e)}"
+                detail="PDF file is empty or contains no readable text."
             )
+        return cleaned_text
+
 
     @staticmethod
     def parse_docx(file_bytes: bytes) -> str:

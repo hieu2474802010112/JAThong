@@ -1,7 +1,7 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-green mx-2">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mx-2">
   <a class="navbar-brand" href="{{ reverse_url('main') }}">
     <img src="{{ static_url('favicon.ico') }}" width="30" height="30" class="d-inline-block align-top" alt="">
-    Flower
+    Quản trị Flower
   </a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
     aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -11,16 +11,16 @@
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
       <li class="nav-item active">
-        <a class="nav-link text-dark" href="{{ reverse_url('workers') }}">Workers (Tiến trình)</a>
+        <a class="nav-link" href="{{ reverse_url('workers') }}">Tiến trình (Workers)</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-dark" href="{{ reverse_url('tasks') }}">Danh sách Tác vụ</a>
+        <a class="nav-link" href="{{ reverse_url('tasks') }}">Danh sách Tác vụ</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-dark" href="{{ reverse_url('broker') }}">Kênh truyền tin (Broker)</a>
+        <a class="nav-link" href="{{ reverse_url('broker') }}">Kênh truyền tin (Broker)</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-dark" href="https://flower.readthedocs.io/" target="_blank" rel="noopener">Tài liệu hướng dẫn</a>
+        <a class="nav-link" href="https://flower.readthedocs.io/" target="_blank" rel="noopener">Tài liệu hướng dẫn</a>
       </li>
     </ul>
 

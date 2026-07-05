@@ -7,8 +7,19 @@
 {% block container %}
 <div class="container-fluid">
   <figure class="table-responsive mt-3">
+    {% set masked_url = broker_url %}
+    {% if '@' in broker_url and '://' in broker_url %}
+        {% set scheme, rest = broker_url.split('://', 1) %}
+        {% set creds, host_part = rest.split('@', 1) %}
+        {% if ':' in creds %}
+            {% set username, password = creds.split(':', 1) %}
+            {% set masked_url = scheme + '://' + username + ':******@' + host_part %}
+        {% else %}
+            {% set masked_url = scheme + '://******@' + host_part %}
+        {% end %}
+    {% end %}
     <table id="queue-table" class="table table-bordered table-striped caption-top">
-      <caption>{{ broker_url }}</caption>
+      <caption>Địa chỉ Kênh truyền tin (Broker URL): {{ masked_url }}</caption>
       <thead>
         <tr>
           <th>Hàng đợi (Queue)</th>

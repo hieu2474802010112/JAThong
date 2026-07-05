@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAThong AI — CV Evaluator</title>
+    <!-- Tailwind CSS v3 Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#090d16',
+                        darkCard: '#111827',
+                        skyAccent: '#38bdf8',
+                        greenAccent: '#4ade80',
+                        redAccent: '#f87171',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090d16;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(74, 222, 128, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glassmorphism {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-200 antialiased flex flex-col justify-between">
+
+    <!-- Top Navigation Bar -->
+    <header class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <div class="glassmorphism rounded-2xl px-6 py-4 flex items-center justify-between shadow-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold font-outfit bg-gradient-to-r from-sky-400 to-indigo-300 bg-clip-text text-transparent">JAThong AI</h1>
+                    <p class="text-xs text-slate-400 font-medium">CV Evaluator &bull; Powered by Gemini</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/docs" target="_blank" class="text-sm font-semibold text-slate-400 hover:text-skyAccent transition-colors">Swagger API Docs</a>
+                <span class="h-4 w-px bg-slate-800"></span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> System Active
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-center">
+        
+        <!-- Drag & Drop Zone -->
+        <div id="upload-container" class="w-full">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl sm:text-4xl font-extrabold font-outfit tracking-tight text-white mb-2">Đánh Giá CV Thông Minh Bằng AI</h2>
+                <p class="text-slate-400 max-w-md mx-auto text-sm sm:text-base">Hệ thống phân tích chuyên sâu đa ngành, tự động chấm điểm và đánh giá hồ sơ ứng viên sử dụng Google Gemini.</p>
+            </div>
+
+            <div id="drop-zone" class="glassmorphism w-full max-w-2xl mx-auto rounded-3xl p-10 border-2 border-dashed border-slate-700 hover:border-sky-500/60 hover:bg-sky-500/[0.02] cursor-pointer transition-all duration-300 group shadow-2xl flex flex-col items-center justify-center text-center">
+                <input type="file" id="file-input" class="hidden" accept=".pdf,.docx">
+                
+                <div class="w-16 h-16 rounded-2xl bg-slate-800/80 group-hover:bg-sky-500/10 flex items-center justify-center mb-6 border border-slate-700/50 group-hover:border-sky-500/20 transition-colors duration-300">
+                    <svg class="w-8 h-8 text-slate-400 group-hover:text-skyAccent transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                </div>
+                
+                <p class="text-lg font-semibold text-slate-200 group-hover:text-white transition-colors duration-300 mb-1">
+                    Kéo thả CV vào đây hoặc <span class="text-skyAccent group-hover:underline">Nhấn để chọn file</span>
+                </p>
+                <p class="text-xs text-slate-500 font-medium">Hỗ trợ định dạng PDF hoặc DOCX (Tối đa 5MB)</p>
+            </div>
+            
+            <div id="error-banner" class="hidden w-full max-w-2xl mx-auto mt-4 px-4 py-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-sm flex items-center gap-2">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <span id="error-message">Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại.</span>
+            </div>
+        </div>
+
+        <!-- Processing State -->
+        <div id="loading-container" class="hidden w-full max-w-md mx-auto text-center py-12">
+            <div class="relative w-24 h-24 mx-auto mb-8">
+                <!-- Inner spinner -->
+                <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-sky-500 border-t-transparent animate-spin"></div>
+                <!-- Pulsing center circle -->
+                <div class="absolute inset-4 rounded-full bg-sky-500/10 border border-sky-500/20 animate-pulse"></div>
+            </div>
+            
+            <h3 class="text-xl font-bold text-white mb-2 font-outfit" id="status-title">Đang tải lên tài liệu...</h3>
+            <p class="text-slate-400 text-sm animate-pulse" id="status-desc">Vui lòng không đóng trình duyệt lúc này.</p>
+        </div>
+
+        <!-- Result Panel -->
+        <div id="result-container" class="hidden w-full max-w-4xl mx-auto">
+            <!-- Header Block -->
+            <div class="glassmorphism rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="text-center md:text-left">
+                    <span id="result-industry" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-3 uppercase tracking-wider">
+                        Phát triển phần mềm
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold font-outfit text-white mb-1">Kết quả đánh giá CV</h2>
+                    <p class="text-slate-400 text-sm">Hồ sơ đã được chấm điểm tự động bằng mô hình AI.</p>
+                </div>
+                
+                <!-- Circular Score Gauge -->
+                <div class="flex items-center gap-4">
+                    <div class="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-900 border border-slate-800 shadow-inner">
+                        <svg class="w-full h-full transform -rotate-95">
+                            <circle class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" r="42" cx="56" cy="56"/>
+                            <circle id="score-circle" class="text-skyAccent transition-all duration-1000 ease-out" stroke-width="6" stroke-dasharray="264" stroke-dashoffset="264" stroke-linecap="round" stroke="currentColor" fill="transparent" r="42" cx="56" cy="56"/>
+                        </svg>
+                        <div class="absolute flex flex-col items-center justify-center">
+                            <span id="result-score" class="text-3xl sm:text-4xl font-extrabold text-white font-outfit tracking-tight">0.0</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">điểm / 10</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Columns for Strengths & Weaknesses -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Strengths Column -->
+                <div class="glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col shadow-xl">
+                    <div class="flex items-center gap-2 mb-6 text-green-400">
+                        <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold font-outfit text-white">Điểm mạnh nổi bật</h3>
+                    </div>
+                    <ul id="strengths-list" class="space-y-3 flex-grow text-slate-300 text-sm">
+                        <!-- Dynamic list items -->
+                    </ul>
+                </div>
+
+                <!-- Weaknesses Column -->
+                <div class="glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col shadow-xl">
+                    <div class="flex items-center gap-2 mb-6 text-red-400">
+                        <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold font-outfit text-white">Điểm cần cải thiện</h3>
+                    </div>
+                    <ul id="weaknesses-list" class="space-y-3 flex-grow text-slate-300 text-sm">
+                        <!-- Dynamic list items -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recommended Roles Block -->
+            <div class="glassmorphism rounded-3xl p-6 sm:p-8 shadow-xl">
+                <div class="flex items-center gap-2 mb-4 text-sky-400">
+                    <div class="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold font-outfit text-white">Vị trí công việc đề xuất</h3>
+                </div>
+                <div id="roles-container" class="flex flex-wrap gap-2.5">
+                    <!-- Dynamic tag items -->
+                </div>
+            </div>
+
+            <!-- Detailed Criteria Accordion Block -->
+            <div class="glassmorphism rounded-3xl p-6 sm:p-8 shadow-xl mt-6">
+                <div class="flex items-center gap-2 mb-4 text-sky-400">
+                    <div class="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center border border-sky-500/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold font-outfit text-white">Chi tiết 15 tiêu chí đánh giá CV</h3>
+                </div>
+                <p class="text-xs text-slate-400 mb-6 font-medium">Bấm vào từng tiêu chí bên dưới để xem nhận xét chi tiết và gợi ý cải thiện từ AI.</p>
+                <div id="criteria-accordion-container" class="space-y-3">
+                    <!-- Dynamic Accordions will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Back/Re-upload Button -->
+            <div class="text-center mt-8">
+                <button id="reset-button" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-sm font-semibold transition-all duration-200 active:scale-[0.98]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"></path>
+                    </svg> Tải lên CV khác
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-500 font-medium">
+        &copy; 2026 JAThong. Mọi quyền được bảo lưu. Powered by Google Gemini AI.
+    </footer>
+
+    <!-- Frontend Logic script -->
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadContainer = document.getElementById('upload-container');
+        const loadingContainer = document.getElementById('loading-container');
+        const resultContainer = document.getElementById('result-container');
+        const errorBanner = document.getElementById('error-banner');
+        const errorMessage = document.getElementById('error-message');
+        
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+        
+        const resultScore = document.getElementById('result-score');
+        const scoreCircle = document.getElementById('score-circle');
+        const resultIndustry = document.getElementById('result-industry');
+        const strengthsList = document.getElementById('strengths-list');
+        const weaknessesList = document.getElementById('weaknesses-list');
+        const rolesContainer = document.getElementById('roles-container');
+        const resetButton = document.getElementById('reset-button');
+        
+        let pollingInterval = null;
+        let loadingMsgInterval = null;
+
+        // Reset App State to Upload
+        function resetApp() {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            if (loadingMsgInterval) {
+                clearInterval(loadingMsgInterval);
+                loadingMsgInterval = null;
+            }
+            
+            // Clean values
+            fileInput.value = '';
+            errorBanner.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            loadingContainer.classList.add('hidden');
+            
+            // Show upload panel
+            uploadContainer.classList.remove('hidden');
+        }
+
+        resetButton.addEventListener('click', resetApp);
+
+        // Show Error Message helper
+        function showError(message) {
+            if (loadingMsgInterval) {
+                clearInterval(loadingMsgInterval);
+                loadingMsgInterval = null;
+            }
+            errorMessage.textContent = message;
+            errorBanner.classList.remove('hidden');
+            loadingContainer.classList.add('hidden');
+            uploadContainer.classList.remove('hidden');
+        }
+
+        // Show Loading State helper
+        function showLoading(title, desc) {
+            statusTitle.textContent = title;
+            statusDesc.textContent = desc;
+            uploadContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            loadingContainer.classList.remove('hidden');
+
+            if (loadingMsgInterval) {
+                clearInterval(loadingMsgInterval);
+                loadingMsgInterval = null;
+            }
+
+            if (title === 'Phân tích kết quả CV...') {
+                const loadingMessages = [
+                    "Đang số hóa văn bản CV...",
+                    "AI đang phân tích cấu trúc...",
+                    "Đang đối chiếu với bộ tiêu chí đánh giá...",
+                    "Đang tổng hợp điểm số...",
+                    "Sắp hoàn thành..."
+                ];
+                let msgIdx = 0;
+                statusDesc.textContent = loadingMessages[msgIdx];
+                loadingMsgInterval = setInterval(() => {
+                    msgIdx = (msgIdx + 1) % loadingMessages.length;
+                    statusDesc.textContent = loadingMessages[msgIdx];
+                }, 5000);
+            }
+        }
+
+        // Trigger file selection
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // File selection event
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        // Track current CV id so chat widget can init after results
+        let currentCvId = null;
+
+        // Drag & Drop event listeners
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('border-sky-500', 'bg-sky-500/[0.04]', 'scale-[1.01]');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-sky-500', 'bg-sky-500/[0.04]', 'scale-[1.01]');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Process File flow
+        async function handleFile(file) {
+            // Validate File Type
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'pdf' && ext !== 'docx') {
+                showError('Định dạng tệp tin không được hỗ trợ. Vui lòng tải lên file PDF hoặc DOCX.');
+                return;
+            }
+
+            // Validate File Size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showError('Dung lượng tệp tin vượt quá giới hạn 5MB.');
+                return;
+            }
+
+            errorBanner.classList.add('hidden');
+            showLoading('Đang tải lên CV...', 'CV đang được xử lý và tải lên hệ thống lưu trữ...');
+
+            try {
+                // Step 1: Upload File
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const uploadResponse = await fetch('/api/v1/cv/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    const errDetail = await uploadResponse.json();
+                    throw new Error(errDetail.detail || `Tải tệp tin thất bại (HTTP ${uploadResponse.status})`);
+                }
+
+                const uploadData = await uploadResponse.json();
+                const cvId = uploadData.id;
+                currentCvId = cvId;
+
+                // Step 2: Trigger Evaluation
+                showLoading('Chatbot 2 đang phân tích CV...', 'Gửi yêu cầu đánh giá đến mô hình trí tuệ nhân tạo...');
+                
+                const evaluateResponse = await fetch(`/api/v1/cv/${cvId}/evaluate`, {
+                    method: 'POST'
+                });
+
+                if (!evaluateResponse.ok) {
+                    const errDetail = await evaluateResponse.json();
+                    throw new Error(errDetail.detail || `Khởi tạo phân tích thất bại (HTTP ${evaluateResponse.status})`);
+                }
+
+                const evalData = await evaluateResponse.json();
+                const taskId = evalData.task_id;
+
+                // Step 3: Polling for Result
+                startPolling(taskId);
+
+            } catch (err) {
+                showError(err.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+            }
+        }
+
+        // Polling Task Status loop
+        function startPolling(taskId) {
+            showLoading('Phân tích kết quả CV...', 'Đang số hóa văn bản CV...');
+            
+            let pollAttempts = 0;
+            const maxAttempts = 30; // Max 90 seconds (30 * 3000ms = 90000ms)
+
+            pollingInterval = setInterval(async () => {
+                pollAttempts++;
+                
+                if (pollAttempts > maxAttempts) {
+                    clearInterval(pollingInterval);
+                    showError('Hệ thống AI đang quá tải, vui lòng thử lại sau ít phút.');
+                    return;
+                }
+
+                try {
+                    const statusResponse = await fetch(`/api/v1/cv/task-status/${taskId}`);
+                    if (!statusResponse.ok) {
+                        throw new Error('Không thể kiểm tra trạng thái tác vụ.');
+                    }
+
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.status === 'success') {
+                        clearInterval(pollingInterval);
+                        if (loadingMsgInterval) {
+                            clearInterval(loadingMsgInterval);
+                            loadingMsgInterval = null;
+                        }
+                        displayResults(statusData.result);
+                        // Initialise chat session now that CV result is ready
+                        if (currentCvId && window.initChatSession) {
+                            window.initChatSession(currentCvId);
+                        }
+                    } else if (statusData.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        showError(`Tiến trình phân tích bị lỗi: ${statusData.error || 'Lỗi không xác định'}`);
+                    }
+                    // If pending, it will check again on next tick
+                } catch (err) {
+                    clearInterval(pollingInterval);
+                    showError(err.message || 'Đã xảy ra lỗi khi kiểm tra kết quả.');
+                }
+            }, 3000); // 3000ms interval (3 seconds) to avoid spamming the server
+        }
+
+        // Render Results to UI
+        function displayResults(data) {
+            loadingContainer.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+
+            // Set Score
+            const score = parseFloat(data.score).toFixed(1);
+            resultScore.textContent = score;
+
+            // Set Circle Progress animation
+            // Radius=42, Circumference = 2 * pi * 42 = 263.89
+            const circumference = 264;
+            const offset = circumference - (parseFloat(score) / 10) * circumference;
+            
+            // Trigger animation after brief delay to let DOM render
+            setTimeout(() => {
+                scoreCircle.style.strokeDashoffset = offset;
+            }, 100);
+
+            // Set Industry
+            resultIndustry.textContent = data.detected_industry || 'Chưa xác định ngành nghề';
+
+            // Set Strengths
+            strengthsList.innerHTML = '';
+            if (data.strengths && data.strengths.length > 0) {
+                data.strengths.forEach(strength => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-start gap-2.5';
+                    li.innerHTML = `
+                        <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>${strength}</span>
+                    `;
+                    strengthsList.appendChild(li);
+                });
+            } else {
+                strengthsList.innerHTML = '<li class="text-slate-500 italic">Không có điểm mạnh cụ thể được ghi nhận</li>';
+            }
+
+            // Set Weaknesses
+            weaknessesList.innerHTML = '';
+            if (data.weaknesses && data.weaknesses.length > 0) {
+                data.weaknesses.forEach(weakness => {
+                    const li = document.createElement('li');
+                    li.className = 'flex flex-col gap-1.5 mb-3 border-l-2 border-rose-500/40 pl-3';
+
+                    const issueText = (typeof weakness === 'object' && weakness !== null) ? (weakness.issue || '') : weakness;
+                    const suggestionText = (typeof weakness === 'object' && weakness !== null) ? (weakness.suggestion || '') : '';
+
+                    li.innerHTML = `
+                        <div class="flex items-start gap-2">
+                            <span class="text-rose-400 text-sm flex-shrink-0 font-bold leading-5">🔴</span>
+                            <span class="text-sm font-semibold text-slate-100 leading-5"><span class="text-rose-400">Điểm cần cải thiện:</span> ${issueText}</span>
+                        </div>
+                        ${suggestionText ? `
+                        <div class="flex items-start gap-2 pl-1">
+                            <span class="text-amber-400 text-sm flex-shrink-0 leading-5">💡</span>
+                            <span class="text-xs text-amber-200/90 italic leading-relaxed"><span class="not-italic font-medium text-amber-300">Gợi ý sửa từ JATHONG AI:</span> "${suggestionText}"</span>
+                        </div>` : ''}
+                    `;
+                    weaknessesList.appendChild(li);
+                });
+            } else {
+                weaknessesList.innerHTML = '<li class="text-slate-500 italic">Không có điểm yếu cụ thể được phát hiện</li>';
+            }
+
+            // Set Recommended Roles
+            rolesContainer.innerHTML = '';
+            if (data.recommended_roles && data.recommended_roles.length > 0) {
+                data.recommended_roles.forEach(role => {
+                    const tag = document.createElement('span');
+                    tag.className = 'px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700/60 text-xs font-semibold';
+                    tag.textContent = role;
+                    rolesContainer.appendChild(tag);
+                });
+            } else {
+                rolesContainer.innerHTML = '<span class="text-slate-500 italic text-sm">Không có vai trò đề xuất</span>';
+            }
+
+            // Render 15 Criteria Accordion dynamically from API response
+            const accordionContainer = document.getElementById('criteria-accordion-container');
+            accordionContainer.innerHTML = '';
+            
+            const detailedScores = data.detailed_scores || {};
+            const criteriaList = [];
+
+            // === MERGE LOGIC: Group overlapping criteria before rendering ===
+            // Groups: (1) All 3 objective sub-criteria → 1 combined entry
+            //         (2) Bố cục + Màu sắc + Font → 1 combined entry
+            const mergedGroups = {
+                'objective': { keys: [], scores: [], comments: [], suggestions: [] },
+                'layout':    { keys: [], scores: [], comments: [], suggestions: [] },
+            };
+            const standaloneEntries = [];
+
+            for (const [key, val] of Object.entries(detailedScores)) {
+                const kl = key.toLowerCase();
+                let score = -1.0, comment = '', suggestion = '';
+                if (val !== null && typeof val === 'object') {
+                    score = typeof val.score !== 'undefined' ? parseFloat(val.score) : -1.0;
+                    comment = val.comment || '';
+                    suggestion = val.suggestion || '';
+                } else if (typeof val === 'number') { score = val; }
+                  else if (typeof val === 'string') { score = parseFloat(val); }
+
+                // Objective group
+                if (kl.includes('mục tiêu') || kl.includes('profile summary') || kl.includes('tóm tắt') || kl.includes('định hướng')) {
+                    mergedGroups.objective.keys.push(key);
+                    mergedGroups.objective.scores.push(score);
+                    if (comment) mergedGroups.objective.comments.push(comment);
+                    if (suggestion) mergedGroups.objective.suggestions.push(suggestion);
+                }
+                // Layout group
+                else if (kl.includes('bố cục') || kl.includes('màu sắc') || kl.includes('font') || kl.includes('layout') || kl.includes('trình bày') || kl.includes('lỗi chính tả')) {
+                    mergedGroups.layout.keys.push(key);
+                    mergedGroups.layout.scores.push(score);
+                    if (comment) mergedGroups.layout.comments.push(comment);
+                    if (suggestion) mergedGroups.layout.suggestions.push(suggestion);
+                }
+                else {
+                    standaloneEntries.push({ criteria: key, score, comment, suggestion });
+                }
+            }
+
+            // Helper: compute merged score (average of valid scores, ignore -1.0)
+            function mergeScore(scores) {
+                const valid = scores.filter(s => s >= 0.0);
+                if (!valid.length) return -1.0;
+                return valid.reduce((a, b) => a + b, 0) / valid.length;
+            }
+
+            // Push merged Objective entry
+            if (mergedGroups.objective.keys.length > 0) {
+                const avgScore = mergeScore(mergedGroups.objective.scores);
+                criteriaList.push({
+                    criteria: 'Mục tiêu nghề nghiệp & Định hướng',
+                    score: avgScore,
+                    comment: mergedGroups.objective.comments.join(' | ') || (avgScore >= 9.0 ? 'Định hướng nghề nghiệp rõ ràng, thuyết phục.' : 'Không có nhận xét chi tiết.'),
+                    suggestion: mergedGroups.objective.suggestions.join(' | ') || (avgScore >= 9.0 ? 'Không cần cải thiện.' : 'Không có gợi ý cải thiện.'),
+                    isAtsLayout: false
+                });
+            }
+
+            // Push merged Layout/Font/Color entry
+            if (mergedGroups.layout.keys.length > 0) {
+                const avgScore = mergeScore(mergedGroups.layout.scores);
+                // ATS layout: if score is -1 (N/A) or >= 9.5 → treat as ATS-optimal
+                const isAts = (avgScore === -1.0 || avgScore >= 9.5);
+                const displayScore = isAts ? 10.0 : avgScore;
+                criteriaList.push({
+                    criteria: 'Bố cục, Font & Màu sắc',
+                    score: displayScore,
+                    comment: mergedGroups.layout.comments.join(' | ') || (isAts ? 'Bố cục ATS-friendly chuẩn mực, tối ưu hóa khả năng đọc bởi hệ thống ATS.' : 'Không có nhận xét chi tiết.'),
+                    suggestion: mergedGroups.layout.suggestions.join(' | ') || (isAts ? 'Không cần cải thiện — Bố cục ATS tối ưu.' : 'Không có gợi ý cải thiện.'),
+                    isAtsLayout: isAts
+                });
+            }
+
+            // Push standalone entries
+            standaloneEntries.forEach(e => {
+                let comment = e.comment, suggestion = e.suggestion;
+                if (e.score >= 9.0) {
+                    comment = comment || 'Tiêu chí đạt điểm xuất sắc. Phát huy tối đa thế mạnh.';
+                    suggestion = suggestion || 'Không cần cải thiện (Tiêu chí xuất sắc).';
+                } else if (e.score >= 7.0 && e.score !== -1.0) {
+                    comment = comment || 'Tiêu chí đạt điểm khá. Không phát hiện lỗi cần điều chỉnh.';
+                    suggestion = suggestion || 'Tiếp tục duy trì và phát huy.';
+                } else {
+                    comment = comment || 'Không có nhận xét chi tiết.';
+                    suggestion = suggestion || 'Không có gợi ý cải thiện.';
+                }
+                criteriaList.push({ ...e, comment, suggestion, isAtsLayout: false });
+            });
+
+            // Fallback list of default criteria if detailed_scores is empty or not loaded
+            if (criteriaList.length === 0) {
+                const defaultKeys = [
+                    "Bố cục, Font & Màu sắc", "Thông tin cá nhân & liên hệ",
+                    "Mục tiêu nghề nghiệp & Định hướng",
+                    "Kinh nghiệm làm việc", "Dự án cá nhân / học tập", "Kỹ năng cứng",
+                    "Kỹ năng mềm", "Hoạt động ngoại khóa", "Chứng chỉ / thành tích",
+                    "Link minh chứng / Portfolio"
+                ];
+                defaultKeys.forEach(k => {
+                    criteriaList.push({
+                        criteria: k,
+                        score: -1.0,
+                        comment: 'Không có dữ liệu đánh giá chi tiết cho tiêu chí này.',
+                        suggestion: 'Vui lòng bổ sung nội dung liên quan trong CV để AI có thể đánh giá chi tiết.',
+                        isAtsLayout: false
+                    });
+                });
+            }
+
+            criteriaList.forEach((item, idx) => {
+                let textClass = 'text-rose-400';
+                let labelText = 'Cần sửa ngay';
+                let bgClass = 'bg-rose-500/10';
+                let borderClass = 'border-rose-500/20 hover:border-rose-500/40';
+                let badgeBgClass = 'bg-rose-500/25';
+                let scoreText = `${item.score.toFixed(1)}/10`;
+
+                if (item.isAtsLayout) {
+                    // ATS-optimal: special teal badge "Tối ưu ATS"
+                    textClass = 'text-teal-300';
+                    labelText = 'Tối ưu ATS ✓';
+                    bgClass = 'bg-teal-500/10';
+                    borderClass = 'border-teal-500/20 hover:border-teal-400/40';
+                    badgeBgClass = 'bg-teal-500/20';
+                    scoreText = '10.0/10';
+                } else if (item.score === -1.0) {
+                    textClass = 'text-slate-400';
+                    labelText = 'Chưa đánh giá';
+                    bgClass = 'bg-slate-500/10';
+                    borderClass = 'border-slate-700/60 hover:border-slate-500/40';
+                    badgeBgClass = 'bg-slate-800/40';
+                    scoreText = '—';
+                } else if (item.score >= 9.0) {
+                    textClass = 'text-emerald-400';
+                    labelText = 'Rất tốt';
+                    bgClass = 'bg-emerald-500/10';
+                    borderClass = 'border-emerald-500/20 hover:border-emerald-500/40';
+                    badgeBgClass = 'bg-emerald-500/25';
+                } else if (item.score >= 7.0) {
+                    textClass = 'text-sky-400';
+                    labelText = 'Tốt';
+                    bgClass = 'bg-sky-500/10';
+                    borderClass = 'border-sky-500/20 hover:border-sky-500/40';
+                    badgeBgClass = 'bg-sky-500/25';
+                } else if (item.score >= 5.0) {
+                    textClass = 'text-amber-400';
+                    labelText = 'Trung bình';
+                    bgClass = 'bg-amber-500/10';
+                    borderClass = 'border-amber-500/20 hover:border-amber-500/40';
+                    badgeBgClass = 'bg-amber-500/25';
+                }
+
+
+                const card = document.createElement('div');
+                card.className = `rounded-2xl border bg-slate-900/60 overflow-hidden transition-all duration-300 ${borderClass}`;
+                card.innerHTML = `
+                    <button
+                        onclick="toggleAccordion(${idx})"
+                        class="w-full px-5 py-4 flex items-center justify-between text-left focus:outline-none transition-colors duration-205 hover:bg-slate-800/30"
+                    >
+                        <span class="font-bold text-slate-200 text-sm md:text-base">
+                            ${item.criteria}
+                        </span>
+
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 text-[11px] font-extrabold rounded-full border ${badgeBgClass} ${textClass} border-current/20">
+                                ${scoreText} — ${labelText}
+                            </span>
+                            
+                            <svg id="chevron-${idx}" class="w-4 h-4 text-slate-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div id="content-${idx}" class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-800/50 bg-slate-900/20 text-xs leading-relaxed">
+                            
+                            <div class="space-y-2 bg-slate-950/40 p-4 rounded-xl border border-slate-800/40">
+                                <div class="flex items-center space-x-2 text-slate-350 font-bold mb-1">
+                                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Nhận xét chi tiết</span>
+                                </div>
+                                <p class="text-slate-300">${item.comment}</p>
+                            </div>
+
+                            <div class="space-y-2 bg-slate-950/40 p-4 rounded-xl border border-slate-800/40">
+                                <div class="flex items-center space-x-2 text-slate-350 font-bold mb-1">
+                                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                    <span>Gợi ý cải thiện</span>
+                                </div>
+                                <p class="text-slate-300">${item.suggestion}</p>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+                accordionContainer.appendChild(card);
+            });
+        }
+
+        // Global toggleAccordion function
+        window.toggleAccordion = function(idx) {
+            const content = document.getElementById(`content-${idx}`);
+            const chevron = document.getElementById(`chevron-${idx}`);
+            
+            const isOpen = !content.classList.contains('max-h-0');
+            
+            const allContents = document.querySelectorAll('[id^="content-"]');
+            const allChevrons = document.querySelectorAll('[id^="chevron-"]');
+            
+            allContents.forEach(c => {
+                c.style.maxHeight = null;
+                c.classList.add('max-h-0');
+            });
+            allChevrons.forEach(ch => {
+                ch.classList.remove('rotate-180');
+            });
+            
+            if (!isOpen) {
+                content.classList.remove('max-h-0');
+                content.style.maxHeight = content.scrollHeight + "px";
+                chevron.classList.add('rotate-180');
+            }
+        };
+    </script>
+    <!-- ========================================================== -->
+    <!-- CHAT WIDGET: Floating AI Assistant Panel                    -->
+    <!-- ========================================================== -->
+    <style>
+        /* ---- Floating Button ---- */
+        #chat-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 1000;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            box-shadow: 0 4px 24px rgba(56, 189, 248, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+        }
+        #chat-fab:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 8px 32px rgba(56, 189, 248, 0.6);
+        }
+        #chat-fab svg { transition: transform 0.25s ease, opacity 0.2s; }
+        #chat-fab.panel-open .icon-chat  { transform: scale(0); opacity: 0; position: absolute; }
+        #chat-fab.panel-open .icon-close { transform: scale(1); opacity: 1; }
+        #chat-fab .icon-close            { transform: scale(0); opacity: 0; position: absolute; }
+
+        /* ---- Chat Panel ---- */
+        #chat-panel {
+            position: fixed;
+            bottom: 100px;
+            right: 28px;
+            z-index: 999;
+            width: 370px;
+            max-width: calc(100vw - 40px);
+            height: 520px;
+            max-height: calc(100vh - 140px);
+            border-radius: 20px;
+            background: rgba(13, 18, 30, 0.94);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            box-shadow: 0 16px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(56,189,248,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(24px) scale(0.96);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.28s cubic-bezier(.34,1.3,.64,1), opacity 0.22s ease;
+        }
+        #chat-panel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ---- Header ---- */
+        #chat-header {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(56,189,248,0.10);
+            background: linear-gradient(90deg, rgba(56,189,248,0.07) 0%, rgba(129,140,248,0.06) 100%);
+            flex-shrink: 0;
+        }
+        #chat-header .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        #chat-header .title { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        #chat-header .subtitle { font-size: 11px; color: #38bdf8; margin-top: 1px; }
+        #chat-close-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: color 0.15s, background 0.15s;
+            display: flex;
+            align-items: center;
+        }
+        #chat-close-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+
+        /* ---- Messages Area ---- */
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 14px 8px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+        }
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-track { background: transparent; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.25); border-radius: 99px; }
+
+        /* ---- Bubbles ---- */
+        .chat-bubble {
+            max-width: 82%;
+            padding: 9px 13px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            word-break: break-word;
+            animation: bubblePop 0.22s cubic-bezier(.34,1.5,.64,1) both;
+        }
+        @keyframes bubblePop {
+            from { transform: scale(0.88) translateY(8px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .chat-bubble.user {
+            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.assistant {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid rgba(56,189,248,0.12);
+            color: #cbd5e1;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-bubble.error-msg {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* ---- Typing Indicator ---- */
+        .typing-indicator {
+            align-self: flex-start;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 14px;
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid rgba(56,189,248,0.12);
+            border-radius: 14px;
+            border-bottom-left-radius: 4px;
+        }
+        .typing-indicator span {
+            width: 7px;
+            height: 7px;
+            background: #38bdf8;
+            border-radius: 50%;
+            animation: typingBounce 1.2s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+            40%            { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ---- Disabled overlay for chat before session init ---- */
+        #chat-disabled-notice {
+            text-align: center;
+            padding: 32px 20px;
+            color: #475569;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        /* ---- Footer / Input ---- */
+        #chat-footer {
+            padding: 10px 12px;
+            border-top: 1px solid rgba(56,189,248,0.10);
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            background: rgba(9,13,22,0.6);
+            flex-shrink: 0;
+        }
+        #chat-input {
+            flex: 1;
+            resize: none;
+            background: rgba(30,41,59,0.7);
+            border: 1px solid rgba(56,189,248,0.18);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 13.5px;
+            font-family: 'Inter', sans-serif;
+            padding: 9px 13px;
+            outline: none;
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.45;
+            transition: border-color 0.18s;
+        }
+        #chat-input:focus { border-color: #38bdf8; }
+        #chat-input::placeholder { color: #475569; }
+        #chat-send-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: opacity 0.18s, transform 0.18s;
+        }
+        #chat-send-btn:hover { opacity: 0.85; transform: scale(1.06); }
+        #chat-send-btn:disabled { opacity: 0.38; cursor: default; transform: none; }
+
+        /* ---- Pulse badge on FAB when session is ready ---- */
+        #chat-ready-badge {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 11px;
+            height: 11px;
+            background: #4ade80;
+            border-radius: 50%;
+            border: 2px solid #090d16;
+            display: none;
+            animation: readyPulse 2s infinite;
+        }
+        @keyframes readyPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+            50%       { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+        }
+    </style>
+
+    <!-- FAB Button -->
+    <button id="chat-fab" title="Chat với Trợ lý AI" aria-label="Mở chat trợ lý">
+        <span id="chat-ready-badge"></span>
+        <!-- Chat icon -->
+        <svg class="icon-chat w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/>
+        </svg>
+        <!-- Close icon -->
+        <svg class="icon-close w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+
+    <!-- Chat Panel -->
+    <div id="chat-panel" role="dialog" aria-label="AI Chat Panel">
+        <!-- Header -->
+        <div id="chat-header">
+            <div class="avatar">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15M14.25 3.104c.251.023.501.05.75.082M19.8 15l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.607L5 14.5m14.8.5l1.196 4.784A2.25 2.25 0 0118.8 21.6H5.2a2.25 2.25 0 01-2.196-1.816L4.2 15"/>
+                </svg>
+            </div>
+            <div>
+                <div class="title">Trợ lý Nhân sự AI</div>
+                <div class="subtitle" id="chat-status-text">Đang chờ kết quả CV...</div>
+            </div>
+            <button id="chat-close-btn" title="Đóng chat" aria-label="Đóng chat">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="chat-messages" aria-live="polite">
+            <div id="chat-disabled-notice">
+                🔍 Tải lên và chờ kết quả đánh giá CV để bắt đầu hội thoại với Trợ lý AI.
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div id="chat-footer">
+            <textarea
+                id="chat-input"
+                rows="1"
+                placeholder="Hỏi về kết quả CV của bạn..."
+                disabled
+                aria-label="Nhập câu hỏi"
+            ></textarea>
+            <button id="chat-send-btn" disabled aria-label="Gửi tin nhắn">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    // ================================================================
+    // CHAT WIDGET LOGIC
+    // ================================================================
+    (function() {
+        const fab         = document.getElementById('chat-fab');
+        const panel       = document.getElementById('chat-panel');
+        const closeBtn    = document.getElementById('chat-close-btn');
+        const messagesEl  = document.getElementById('chat-messages');
+        const inputEl     = document.getElementById('chat-input');
+        const sendBtn     = document.getElementById('chat-send-btn');
+        const statusText  = document.getElementById('chat-status-text');
+        const readyBadge  = document.getElementById('chat-ready-badge');
+        const disabledNotice = document.getElementById('chat-disabled-notice');
+
+        let sessionId   = null;
+        let isSending   = false;
+
+        // ---- Toggle Panel ----
+        fab.addEventListener('click', () => {
+            const isOpen = panel.classList.contains('open');
+            panel.classList.toggle('open', !isOpen);
+            fab.classList.toggle('panel-open', !isOpen);
+        });
+        closeBtn.addEventListener('click', () => {
+            panel.classList.remove('open');
+            fab.classList.remove('panel-open');
+        });
+
+        // ---- Auto-resize textarea ----
+        inputEl.addEventListener('input', () => {
+            inputEl.style.height = 'auto';
+            inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
+        });
+
+        // ---- Enter to send (Shift+Enter = newline) ----
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+        sendBtn.addEventListener('click', handleSend);
+
+        // ---- Init session after CV evaluation is done ----
+        // Called by displayResults() in the main page script
+        window.initChatSession = async function(cvId) {
+            try {
+                const res = await fetch('/api/v1/chat/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cv_record_id: cvId })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                sessionId = data.session_id;
+
+                // Render any previous messages
+                disabledNotice.remove();
+                if (data.history && data.history.length > 0) {
+                    data.history.forEach(msg => appendBubble(msg.sender, msg.content));
+                } else {
+                    // Welcome message
+                    appendBubble('assistant',
+                        '👋 Xin chào! Tôi là Trợ lý Nhân sự AI. Kết quả CV của bạn đã sẵn sàng. Bạn có câu hỏi gì về nhận xét hoặc cách cải thiện CV không?');
+                }
+
+                // Unlock UI
+                inputEl.disabled  = false;
+                sendBtn.disabled  = false;
+                statusText.textContent = '● Trực tuyến';
+                statusText.style.color = '#4ade80';
+                readyBadge.style.display = 'block';
+                scrollToBottom();
+
+            } catch (err) {
+                console.warn('[ChatWidget] Session init failed:', err.message);
+                statusText.textContent = 'Không thể kết nối';
+            }
+        };
+
+        // ---- Send Message ----
+        async function handleSend() {
+            if (isSending || !sessionId) return;
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            isSending = true;
+            sendBtn.disabled = true;
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+
+            appendBubble('user', text);
+            const typingEl = appendTyping();
+            scrollToBottom();
+
+            try {
+                const res = await fetch('/api/v1/chat/candidate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, message: text })
+                });
+
+                typingEl.remove();
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Lỗi máy chủ (HTTP ${res.status})`);
+                }
+
+                const data = await res.json();
+                appendBubble('assistant', data.reply);
+
+            } catch (err) {
+                typingEl.remove();
+                appendBubble('error', `⚠️ ${err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.'}`);
+            } finally {
+                isSending = false;
+                sendBtn.disabled = false;
+                inputEl.focus();
+                scrollToBottom();
+            }
+        }
+
+        // ---- Helpers ----
+        function appendBubble(sender, content) {
+            const div = document.createElement('div');
+            // Map 'assistant' -> 'assistant', 'user' -> 'user', else 'error-msg'
+            const cls = sender === 'user' ? 'user'
+                      : sender === 'assistant' ? 'assistant'
+                      : 'error-msg';
+            div.className = `chat-bubble ${cls}`;
+            div.textContent = content;
+            messagesEl.appendChild(div);
+            return div;
+        }
+
+        function appendTyping() {
+            const div = document.createElement('div');
+            div.className = 'typing-indicator';
+            div.innerHTML = '<span></span><span></span><span></span>';
+            messagesEl.appendChild(div);
+            return div;
+        }
+
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
