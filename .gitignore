@@ -26,4 +26,5 @@ Thumbs.db
 # Logs
 *.log
 system_error.log
-
+# Temp folders
+temp_target_repo/
