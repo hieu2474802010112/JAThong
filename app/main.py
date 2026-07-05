@@ -55,11 +55,12 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/evaluate", response_class=HTMLResponse, tags=["Frontend"])
 def get_evaluate_page(request: Request):
-    return templates.TemplateResponse("evaluate.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="evaluate.html", context={})
 
 @app.get("/portfolio-builder", response_class=HTMLResponse, tags=["Frontend"])
 def get_portfolio_builder_page(request: Request):
-    return templates.TemplateResponse("portfolio_builder.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="portfolio_builder.html", context={})
+
 
 
 @app.exception_handler(Exception)
