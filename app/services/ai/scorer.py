@@ -358,6 +358,17 @@ def calculate_final_score(result: CVEvaluationResult, raw_text: str = "") -> flo
             if any(k in kl for k in ["rating kỹ năng", "thanh kỹ năng", "đánh giá kỹ năng", "skill rating"]):
                 val = max(val, 8.0)
 
+            # Write back the calibrated value to detailed scores so that DB and UI match overall score
+            if isinstance(detailed[key], dict):
+                detailed[key]["score"] = val
+            elif isinstance(detailed[key], (int, float)):
+                detailed[key] = val
+            else:
+                try:
+                    setattr(detailed[key], "score", val)
+                except Exception:
+                    pass
+
             valid_scores.append(val)
 
         base_score = (sum(valid_scores) / len(valid_scores)) if valid_scores else result.score

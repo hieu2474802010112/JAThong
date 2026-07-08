@@ -9,13 +9,17 @@ Public API:
   - evaluate_cv(parsed_text: str) -> CVEvaluationResult
 """
 import os
+import logging
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.models.evaluation import CVEvaluationResult
 from app.services.ai.prompt_templates import SECURITY_PROTOCOL
-from app.services.ai.utils import get_gemini_llm, _working_model_cache, set_working_model_cache
+from app.services.ai.utils import get_gemini_llm
+import app.services.ai.utils as ai_utils
 from app.services.ai.classifier import check_is_cv
 from app.services.ai.scorer import clean_text, get_dynamic_criteria, calculate_final_score
 from app.core.config import settings
@@ -65,7 +69,7 @@ async def evaluate_cv(parsed_text: str) -> CVEvaluationResult:
     # ── 4. Gemini invocation with model fallback ───────────────────────
     # Prioritise the last model that worked (cached across requests)
     models = list(_FALLBACK_MODELS)
-    preferred = os.environ.get("GEMINI_MODEL") or _working_model_cache
+    preferred = os.environ.get("GEMINI_MODEL") or ai_utils.get_working_model_cache()
     if preferred and preferred in models:
         models.remove(preferred)
         models.insert(0, preferred)
@@ -75,6 +79,7 @@ async def evaluate_cv(parsed_text: str) -> CVEvaluationResult:
     last_error: Exception | None = None
     for model_name in models:
         try:
+            logger.info(f"Evaluating CV with model: {model_name}...")
             llm = ChatGoogleGenerativeAI(
                 model=model_name,
                 google_api_key=settings.GEMINI_API_KEY,
@@ -90,10 +95,12 @@ async def evaluate_cv(parsed_text: str) -> CVEvaluationResult:
 
             # ── 5. Score calibration ──────────────────────────────────
             result.score = calculate_final_score(result, cleaned_text)
-            set_working_model_cache(model_name)
+            ai_utils.set_working_model_cache(model_name)
+            logger.info(f"Successfully evaluated CV with model {model_name}. Final Score: {result.score}")
             return result
 
         except Exception as exc:
+            logger.warning(f"Model {model_name} failed: {str(exc)}")
             last_error = exc
             continue
 
