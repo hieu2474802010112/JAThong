@@ -34,7 +34,7 @@ def set_working_model_cache(model_name: str):
         except Exception:
             pass
 
-def get_gemini_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
+def get_gemini_llm(temperature: float = 0.0) -> ChatGoogleGenerativeAI:
     # Allow overriding preferred model via GEMINI_MODEL env var without editing code (solves Point 5)
     preferred_model = os.environ.get("GEMINI_MODEL")
     models = []
@@ -43,14 +43,7 @@ def get_gemini_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
         
     models.extend([
         "gemini-3.5-flash",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-flash-latest",
-        "gemini-pro-latest",
-        "gemini-1.0-pro",
-        "gemini-pro"
+        "gemini-3.1-pro-preview",
     ])
     
     # Try the cached model directly without pinging if available

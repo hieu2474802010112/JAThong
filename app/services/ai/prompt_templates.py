@@ -72,11 +72,11 @@ ANALYSIS GUIDELINES:
 3. Output rules:
    - strengths: Mảng chứa tối đa 3 gạch đầu dòng điểm mạnh của ứng viên (tiếng Việt súc tích, < 20 từ/dòng).
    - weaknesses: Mảng chứa các Object đại diện cho các Điểm cần cải thiện. Mỗi Object bắt buộc gồm:
-     * issue: Tên/Mô tả điểm cần cải thiện cụ thể bằng tiếng Việt.
-     * suggestion: Đoạn văn bản gợi ý hành động hoặc mẫu viết lại trực tiếp.
+     * issue: Tên/Mô tả điểm cần cải thiện cụ thể bằng tiếng Việt. BẮT BUỘC viết cực ngắn gọn (dưới 10 từ).
+     * suggestion: Gợi ý hành động thực tế. BẮT BUỘC viết dạng gạch đầu dòng (bullet points) và TUYỆT ĐỐI KHÔNG vượt quá 20 từ. Viết trực diện, không dài dòng.
        - AI SUGGESTION GENERATION LOGIC:
          + Nếu CV thiếu mục tiêu nghề nghiệp/summary: suggestion bắt buộc phải tự động tạo ra 2 mẫu câu mục tiêu tiếng Anh chuẩn chuyên nghiệp phù hợp với ngành của CV (ví dụ ngành Tech/Data hoặc Mkt/Sales) để ứng viên copy được luôn.
          + Nếu một dòng kinh nghiệm thiếu KPI định lượng: suggestion phải trích xuất chính dòng mô tả đó từ CV gốc và viết lại một phiên bản giả định có kèm số liệu KPI thực tế (ví dụ: Thay vì 'Quản lý Fanpage', gợi ý viết lại thành 'Quản lý Fanpage đạt mức tăng trưởng 25% organic followers trong 2 tháng').
    - Recommended roles, strengths, weaknesses, and detected_industry must be written in Vietnamese (except suggestions/samples which can contain English as templates).
-   - The keys and overall structure must strictly follow the Pydantic schema (score, detected_industry, strengths, weaknesses, recommended_roles, detailed_scores).
+   - CRITICAL SCHEMA RULE: The keys and overall structure must strictly follow the Pydantic schema. For the `detailed_scores` dictionary, YOU MUST STRICTLY USE the exact Key names provided in the Rubric. DO NOT invent new keys. DO NOT translate keys. You are strictly forbidden from decomposing or splitting the criteria keys.
 """

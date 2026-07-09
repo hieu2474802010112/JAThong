@@ -206,7 +206,7 @@
                     <h3 class="text-lg font-bold font-outfit text-white">Chi tiết 15 tiêu chí đánh giá CV</h3>
                 </div>
                 <p class="text-xs text-slate-400 mb-6 font-medium">Bấm vào từng tiêu chí bên dưới để xem nhận xét chi tiết và gợi ý cải thiện từ AI.</p>
-                <div id="criteria-accordion-container" class="space-y-3">
+                <div id="criteria-accordion-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Dynamic Accordions will be rendered here -->
                 </div>
             </div>
@@ -581,7 +581,21 @@
                     if (suggestion) mergedGroups.layout.suggestions.push(suggestion);
                 }
                 else {
-                    standaloneEntries.push({ criteria: key, score, comment, suggestion });
+                    const formatCriteriaKey = (k) => {
+                        const map = {
+                            'content_quality': 'Chất lượng nội dung',
+                            'technical_skills': 'Kỹ năng chuyên môn',
+                            'experience_match': 'Độ phù hợp kinh nghiệm',
+                            'layout_format': 'Hình thức và bố cục',
+                            'soft_skills': 'Kỹ năng mềm',
+                            'achievements': 'Thành tích nổi bật',
+                            'education': 'Trình độ học vấn',
+                            'projects': 'Dự án / Sản phẩm'
+                        };
+                        if (map[k]) return map[k];
+                        return k.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    };
+                    standaloneEntries.push({ criteria: formatCriteriaKey(key), score, comment, suggestion });
                 }
             }
 

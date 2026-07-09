@@ -28,10 +28,8 @@ from app.core.prompt_manager import get_system_prompt
 # Ordered list of Gemini models to try (most capable first, legacy last).
 # The first model that succeeds is cached in-process for subsequent requests.
 _FALLBACK_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-2.5-pro",
+    "gemini-3.5-flash",
+    "gemini-3.1-pro-preview",
 ]
 
 

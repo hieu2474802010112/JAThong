@@ -8,6 +8,8 @@ from app.core.config import settings
 from app.core.database import get_supabase_admin
 from app.services.ai.evaluator import evaluate_cv
 from app.core.logging_config import request_id_var
+import hashlib
+import json
 
 def run_async_sync(coro):
     """Runs a coroutine synchronously, safely handling existing running event loops."""
@@ -43,6 +45,7 @@ celery_app.conf.update(
 )
 
 # Detect if Redis is available, fallback to eager mode if not
+r = None
 try:
     import redis
     r = redis.Redis.from_url(settings.REDIS_URL, socket_timeout=1.0, socket_connect_timeout=1.0)
@@ -65,7 +68,7 @@ def task_postrun_handler(task_id, task, args, kwargs, retval, state, **info):
     if token:
         request_id_var.reset(token)
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=5)
+@celery_app.task(bind=True, max_retries=10, default_retry_delay=5)
 def evaluate_cv_task(self, cv_id: str):
     logger.info(f"Starting Celery task to evaluate CV {cv_id}")
     supabase = get_supabase_admin()
@@ -87,8 +90,42 @@ def evaluate_cv_task(self, cv_id: str):
 
     # 2. Call AI evaluator (async) with Celery auto-retry on API errors
     try:
-        logger.info(f"Invoking AI evaluator for CV {cv_id}...")
-        evaluation_result = run_async_sync(evaluate_cv(parsed_text))
+        evaluation_result_dict = None
+        cache_key = None
+        if r is not None:
+            try:
+                parsed_text_hash = hashlib.sha256(parsed_text.encode('utf-8')).hexdigest()
+                cache_key = f"cv_eval_cache_v2:{parsed_text_hash}"
+                lock_key = f"cv_eval_lock:{parsed_text_hash}"
+                
+                cached_data = r.get(cache_key)
+                if cached_data:
+                    logger.info(f"L2 Cache Hit for CV {cv_id}! Bypassing AI evaluation.")
+                    evaluation_result_dict = json.loads(cached_data)
+                else:
+                    # Race Condition Prevention (Cache Stampede)
+                    # If multiple workers try to evaluate the same CV at the exact same time,
+                    # only the first one should call AI. The others should wait.
+                    acquired = r.setnx(lock_key, "locked")
+                    if acquired:
+                        r.expire(lock_key, 60) # 60s lock
+                    else:
+                        raise Exception("Đang có người chấm CV này rồi, bạn phải chờ đợi trong giây lát!")
+            except Exception as cache_err:
+                if "Đang có người chấm CV này rồi" in str(cache_err):
+                    raise cache_err # Bubble up to trigger Celery retry
+                logger.warning(f"Redis L2 Cache read error: {cache_err}")
+
+        if not evaluation_result_dict:
+            logger.info(f"Invoking AI evaluator for CV {cv_id}...")
+            evaluation_result = run_async_sync(evaluate_cv(parsed_text))
+            evaluation_result_dict = evaluation_result.model_dump()
+            
+            if cache_key and r is not None:
+                try:
+                    r.setex(cache_key, 30 * 24 * 3600, json.dumps(evaluation_result_dict))
+                except Exception as cache_err:
+                    logger.warning(f"Redis L2 Cache write error: {cache_err}")
     except Exception as api_err:
         # If it is classified as not a CV, do not retry
         if isinstance(api_err, ValueError) and "không phải là một CV hợp lệ" in str(api_err):
@@ -130,11 +167,11 @@ def evaluate_cv_task(self, cv_id: str):
     try:
         update_data = {
             "status": "evaluated",
-            "evaluation_result": evaluation_result.model_dump()
+            "evaluation_result": evaluation_result_dict
         }
         supabase.table("cv_records").update(update_data).eq("id", cv_id).execute()
         logger.info(f"Successfully evaluated CV {cv_id}")
-        return evaluation_result.model_dump()
+        return evaluation_result_dict
     except Exception as e:
         logger.error(f"Database error while saving results for CV {cv_id}: {str(e)}")
         supabase.table("cv_records").update({"status": "failed"}).eq("id", cv_id).execute()
